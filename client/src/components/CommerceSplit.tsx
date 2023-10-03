@@ -11,9 +11,8 @@ interface Payment {
 const CommerceSplit: React.FC = () => {
   const [amountToSplit, setAmountToSplit] = useState<number | ''>('');
   const [users, setUsers] = useState<string[]>([]);
-  const [recentPayments, setRecentPayments] = useState<Payment[]>([]);
   const [paymentStatus, setPaymentStatus] = useState<string>('');
-  const [splitPayments, setSplitPayments] = useState<Payment[][]>([]);
+  const [recentPayments, setRecentPayments] = useState<Payment[]>([]);
   const [isNewPayment, setIsNewPayment] = useState<boolean>(true);
   const [transactionId, setTransactionId] = useState<number>(1);
   const [transactionToTrack, setTransactionToTrack] = useState<string>('');
@@ -32,9 +31,11 @@ const CommerceSplit: React.FC = () => {
     const usernameInput = document.getElementById('usernameInput') as HTMLInputElement;
     const newUsername = usernameInput.value.trim();
 
-    if (newUsername !== '' && !users.includes(newUsername)) {
+    if (newUsername !== '' && !users.includes(newUsername) && newUsername.includes('@')) {
       setUsers([...users, newUsername]);
       usernameInput.value = '';
+    } else {
+      alert('Invalid username. Please enter a unique username containing "@".');
     }
   };
 
@@ -56,33 +57,27 @@ const CommerceSplit: React.FC = () => {
       const userShare = amountToSplit / users.length;
 
       const newPayments = users.map((user) => ({
-        id: generateTransactionId(),
+        id: generateTransactionId(), 
         user,
         amount: userShare,
-        status: 'SUCCESSFUL', 
+        status: randomOutcome < 0.3 ? 'PENDING' : 'SUCCESSFUL',
       }));
 
-      setRecentPayments(newPayments);
+      setRecentPayments((prevPayments) => [...prevPayments, ...newPayments]);
       setPaymentStatus('SUCCESSFUL');
-
-      const recentUsersAndFriends = recentPayments.map((payment) => payment.user);
-      for (const user of recentUsersAndFriends) {
-        if (!users.includes(user)) {
-          newPayments.push({
-            id: generateTransactionId(),
-            user,
-            amount: userShare,
-            status: 'SUCCESSFUL', 
-          });
-        }
-      }
-
       setPreviousPayment(recentPayments[recentPayments.length - 1]);
-      setSplitPayments([...splitPayments, newPayments]);
 
       setIsNewPayment(false);
       setTransactionId(transactionId + 1);
     }, 3000);
+  };
+
+  const startNewPayment = () => {
+    setIsNewPayment(true);
+    setAmountToSplit('');
+    setUsers([]);
+    setPaymentStatus('');
+    setPreviousPayment(null);
   };
 
   const trackTransaction = () => {
@@ -97,26 +92,16 @@ const CommerceSplit: React.FC = () => {
     }
   };
 
-  const startNewPayment = () => {
-    setIsNewPayment(true);
-    setAmountToSplit('');
-    setUsers([]);
-    setPaymentStatus('');
-    setPreviousPayment(null);
-  };
-
   const getLastThreePayments = () => {
-    if (splitPayments.length <= 3) {
-      return splitPayments;
-    }
-    return splitPayments.slice(splitPayments.length - 3);
+    const reversedPayments = [...recentPayments].reverse();
+    return reversedPayments.slice(0, 3);
   };
 
   return (
     <div className="container mt-5">
       <div className="row">
         <div className="col-md-6">
-          <h1>Welcome to Commerce Split</h1>
+          <h2>Split Payment</h2>
           <div className="mb-3">
             <label htmlFor="amountToSplit" className="form-label">
               Enter the amount to split:
@@ -168,11 +153,9 @@ const CommerceSplit: React.FC = () => {
               Start New Payment
             </button>
           )}
-          <div className="mb-3">
-            <strong>Status:</strong> {paymentStatus}
-          </div>
         </div>
         <div className="col-md-6">
+          <h2>Payment Tracking</h2>
           <div className="mb-3">
             <strong>Enter Transaction ID to Track:</strong>
             <div className="input-group">
@@ -191,21 +174,6 @@ const CommerceSplit: React.FC = () => {
           <div className="mb-3">
             <strong>Status:</strong> {paymentStatus}
           </div>
-          <div className="mb-3">
-            <strong>Recent Split Payments:</strong>
-            {getLastThreePayments().map((payments, index) => (
-              <div className="mb-3" key={index}>
-                <strong>Payment {splitPayments.length - 2 + index}:</strong>
-                <ul className="list-group">
-                  {payments.map((payment, i) => (
-                    <li className="list-group-item" key={i}>
-                      Transaction ID: {payment.id} - User: {payment.user} - Amount: {payment.amount} - Status: {payment.status}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
           {previousPayment && (
             <div className="mb-3">
               <strong>Previous Payment:</strong>
@@ -217,6 +185,17 @@ const CommerceSplit: React.FC = () => {
             </div>
           )}
         </div>
+      </div>
+      {}
+      <div className="col-md-6">
+        <h2>Recent Transactions</h2>
+        <ul className="list-group">
+          {getLastThreePayments().map((payment, index) => (
+            <li className="list-group-item" key={index}>
+              Transaction ID: {payment.id} - User: {payment.user} - Amount: {payment.amount} - Status: {payment.status}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
