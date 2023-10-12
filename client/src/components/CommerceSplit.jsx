@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const CommerceSplit = () => {
-  const [amountToSplit, setAmountToSplit] = useState('');
+  const [totalAmount, setTotalAmount] = useState(1);
   const [users, setUsers] = useState([]);
   const [paymentStatus, setPaymentStatus] = useState('');
   const [recentPayments, setRecentPayments] = useState([]);
@@ -16,16 +16,12 @@ const CommerceSplit = () => {
     return id;
   };
 
-  const handleAmountChange = (event) => {
-    setAmountToSplit(event.target.value === '' ? '' : Number(event.target.value));
-  };
-
   const addUser = () => {
     const usernameInput = document.getElementById('usernameInput');
     const newUsername = usernameInput.value.trim();
 
-    if (newUsername !== '' && !users.includes(newUsername) && newUsername.includes('@')) {
-      setUsers([...users, newUsername]);
+    if (newUsername !== '' && !users.some(user => user.name === newUsername) && newUsername.includes('@')) {
+      setUsers([...users, { name: newUsername, customAmount: 0 }]);
       usernameInput.value = '';
     } else {
       alert('Invalid username. Please enter a unique username containing "@".');
@@ -37,37 +33,46 @@ const CommerceSplit = () => {
     setUsers(updatedUsers);
   };
 
+  const updateCustomAmount = (index, value) => {
+    const updatedUsers = [...users];
+    updatedUsers[index].customAmount = parseFloat(value) || 0;
+    setUsers(updatedUsers);
+  };
+
   const submitPayment = () => {
-    if (amountToSplit === '' || users.length < 2) {
-      setPaymentStatus('Please enter an amount and add at least two unique users.');
+    if (totalAmount <= 0 || users.length < 2) {
+      setPaymentStatus('Please enter a valid amount and add at least two unique users.');
       return;
     }
 
-    setPaymentStatus('Processing...');
-    const randomOutcome = Math.random(); 
+    let remainingAmount = totalAmount;
+    const equalShare = totalAmount / users.length;
+    const newPayments = [];
 
-    setTimeout(() => {
-      const userShare = amountToSplit / users.length;
+    users.forEach((user, index) => {
+      const customAmount = user.customAmount;
+      const userShare = Math.min(equalShare + customAmount, remainingAmount);
+      remainingAmount -= userShare;
 
-      const newPayments = users.map((user) => ({
-        id: generateTransactionId(), 
-        user,
+      newPayments.push({
+        id: generateTransactionId(),
+        user: user.name,
         amount: userShare,
-        status: randomOutcome < 0.3 ? 'PENDING' : 'SUCCESSFUL',
-      }));
+        status: 'SUCCESSFUL',
+      });
+    });
 
-      setRecentPayments((prevPayments) => [...prevPayments, ...newPayments]);
-      setPaymentStatus('SUCCESSFUL');
-      setPreviousPayment(recentPayments[recentPayments.length - 1]);
+    setRecentPayments((prevPayments) => [...prevPayments, ...newPayments]);
+    setPaymentStatus('SUCCESSFUL');
+    setPreviousPayment(recentPayments[recentPayments.length - 1]);
 
-      setIsNewPayment(false);
-      setTransactionId(transactionId + 1);
-    }, 3000);
+    setIsNewPayment(false);
+    setTransactionId(transactionId + 1);
   };
 
   const startNewPayment = () => {
     setIsNewPayment(true);
-    setAmountToSplit('');
+    setTotalAmount(1);
     setUsers([]);
     setPaymentStatus('');
     setPreviousPayment(null);
@@ -96,16 +101,16 @@ const CommerceSplit = () => {
         <div className="col-md-6">
           <h2>Split Payment</h2>
           <div className="mb-3">
-            <label htmlFor="amountToSplit" className="form-label">
-              Enter the amount to split:
+            <label htmlFor="totalAmount" className="form-label">
+              Enter the total amount to split:
             </label>
             <input
               type="number"
               className="form-control"
-              id="amountToSplit"
-              placeholder="Enter amount"
-              value={amountToSplit}
-              onChange={handleAmountChange}
+              id="totalAmount"
+              placeholder="Enter total amount"
+              value={totalAmount}
+              onChange={(e) => setTotalAmount(Math.max(parseFloat(e.target.value) || 1, 1))}
             />
           </div>
           <div className="mb-3">
@@ -129,7 +134,14 @@ const CommerceSplit = () => {
             <ul className="list-group">
               {users.map((user, index) => (
                 <li className="list-group-item d-flex justify-content-between align-items-center" key={index}>
-                  {user}
+                  {user.name}
+                  <input
+                    type="number"
+                    className="form-control"
+                    placeholder="Custom Amount"
+                    value={user.customAmount}
+                    onChange={(e) => updateCustomAmount(index, e.target.value)}
+                  />
                   <button className="btn btn-danger btn-sm" onClick={() => removeUser(user)}>
                     Remove
                   </button>
@@ -152,7 +164,7 @@ const CommerceSplit = () => {
           <div className="mb-3">
             <strong>Enter Transaction ID to Track:</strong>
             <div className="input-group">
-              <input
+            <input
                 type="text"
                 className="form-control"
                 placeholder="Enter Transaction ID"
