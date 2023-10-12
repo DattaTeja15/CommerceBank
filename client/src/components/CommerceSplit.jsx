@@ -1,34 +1,27 @@
 import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-interface Payment {
-  id: string;
-  user: string;
-  amount: number;
-  status: string;
-}
-
-const CommerceSplit: React.FC = () => {
-  const [amountToSplit, setAmountToSplit] = useState<number | ''>('');
-  const [users, setUsers] = useState<string[]>([]);
-  const [paymentStatus, setPaymentStatus] = useState<string>('');
-  const [recentPayments, setRecentPayments] = useState<Payment[]>([]);
-  const [isNewPayment, setIsNewPayment] = useState<boolean>(true);
-  const [transactionId, setTransactionId] = useState<number>(1);
-  const [transactionToTrack, setTransactionToTrack] = useState<string>('');
-  const [previousPayment, setPreviousPayment] = useState<Payment | null>(null);
+const CommerceSplit = () => {
+  const [amountToSplit, setAmountToSplit] = useState('');
+  const [users, setUsers] = useState([]);
+  const [paymentStatus, setPaymentStatus] = useState('');
+  const [recentPayments, setRecentPayments] = useState([]);
+  const [isNewPayment, setIsNewPayment] = useState(true);
+  const [transactionId, setTransactionId] = useState(1);
+  const [transactionToTrack, setTransactionToTrack] = useState('');
+  const [previousPayment, setPreviousPayment] = useState(null);
 
   const generateTransactionId = () => {
     const id = Math.floor(10000 + Math.random() * 90000).toString();
     return id;
   };
 
-  const handleAmountChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAmountChange = (event) => {
     setAmountToSplit(event.target.value === '' ? '' : Number(event.target.value));
   };
 
   const addUser = () => {
-    const usernameInput = document.getElementById('usernameInput') as HTMLInputElement;
+    const usernameInput = document.getElementById('usernameInput');
     const newUsername = usernameInput.value.trim();
 
     if (newUsername !== '' && !users.includes(newUsername) && newUsername.includes('@')) {
@@ -39,7 +32,7 @@ const CommerceSplit: React.FC = () => {
     }
   };
 
-  const removeUser = (userToRemove: string) => {
+  const removeUser = (userToRemove) => {
     const updatedUsers = users.filter((user) => user !== userToRemove);
     setUsers(updatedUsers);
   };
@@ -186,7 +179,6 @@ const CommerceSplit: React.FC = () => {
           )}
         </div>
       </div>
-      {}
       <div className="col-md-6">
         <h2>Recent Transactions</h2>
         <ul className="list-group">
