@@ -10,6 +10,7 @@ const CommerceSplit = () => {
   const [transactionId, setTransactionId] = useState(1);
   const [transactionToTrack, setTransactionToTrack] = useState('');
   const [previousPayment, setPreviousPayment] = useState(null);
+  const [isPaymentApproved, setIsPaymentApproved] = useState(false);
 
   const generateTransactionId = () => {
     const id = Math.floor(10000 + Math.random() * 90000).toString();
@@ -41,33 +42,34 @@ const CommerceSplit = () => {
 
   const submitPayment = () => {
     if (totalAmount <= 0 || users.length < 2) {
-      setPaymentStatus('Please enter a valid amount and add at least two unique users.');
-      return;
-    }
+      setPaymentStatus('Please enter a valid amount and add at least two unique users');
+    } else {
+      let remainingAmount = totalAmount;
+      const equalShare = totalAmount / users.length;
+      const newPayments = [];
 
-    let remainingAmount = totalAmount;
-    const equalShare = totalAmount / users.length;
-    const newPayments = [];
+      users.forEach((user, index) => {
+        const customAmount = user.customAmount;
+        const userShare = Math.min(equalShare + customAmount, remainingAmount);
+        remainingAmount -= userShare;
 
-    users.forEach((user, index) => {
-      const customAmount = user.customAmount;
-      const userShare = Math.min(equalShare + customAmount, remainingAmount);
-      remainingAmount -= userShare;
-
-      newPayments.push({
-        id: generateTransactionId(),
-        user: user.name,
-        amount: userShare,
-        status: 'SUCCESSFUL',
+        newPayments.push({
+          id: generateTransactionId(),
+          user: user.name,
+          amount: userShare,
+          status: 'PENDING',
+        });
       });
-    });
 
-    setRecentPayments((prevPayments) => [...prevPayments, ...newPayments]);
-    setPaymentStatus('SUCCESSFUL');
-    setPreviousPayment(recentPayments[recentPayments.length - 1]);
+      setRecentPayments((prevPayments) => [...prevPayments, ...newPayments]);
+      setPaymentStatus('Payment Submitted - Awaiting Approval');
+      setPreviousPayment(recentPayments[recentPayments.length - 1]);
 
-    setIsNewPayment(false);
-    setTransactionId(transactionId + 1);
+      setIsNewPayment(false);
+      setTransactionId(transactionId + 1);
+
+      setIsPaymentApproved(false); // Set the payment approval status to false initially
+    }
   };
 
   const startNewPayment = () => {
@@ -164,7 +166,7 @@ const CommerceSplit = () => {
           <div className="mb-3">
             <strong>Enter Transaction ID to Track:</strong>
             <div className="input-group">
-            <input
+              <input
                 type="text"
                 className="form-control"
                 placeholder="Enter Transaction ID"
@@ -178,6 +180,11 @@ const CommerceSplit = () => {
           </div>
           <div className="mb-3">
             <strong>Status:</strong> {paymentStatus}
+            {paymentStatus === 'Payment Submitted - Awaiting Approval' && !isPaymentApproved && (
+              <button className="btn btn-primary" onClick={() => setIsPaymentApproved(true)}>
+                Approve Payment
+              </button>
+            )}
           </div>
           {previousPayment && (
             <div className="mb-3">
@@ -194,7 +201,7 @@ const CommerceSplit = () => {
       <div className="col-md-6">
         <h2>Recent Transactions</h2>
         <ul className="list-group">
-          {getLastThreePayments().map((payment, index) => (
+        {getLastThreePayments().map((payment, index) => (
             <li className="list-group-item" key={index}>
               Transaction ID: {payment.id} - User: {payment.user} - Amount: {payment.amount} - Status: {payment.status}
             </li>
